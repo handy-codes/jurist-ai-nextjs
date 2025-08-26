@@ -1,0 +1,16 @@
+credentials:
+  usernames:
+    paxymekventures@gmail.com:
+      name: Emeka
+      email: paxymeventures@gmail.com
+      password: '$2b$12$92sB//z4RQIjyo8DgV3AOeFf8fq.NjbzMm4/NO3kcg7FD6DU5vyoy'  # Leave empty since we're using Google OAuth
+      logged_in: False
+
+cookie:
+  name: niglawai_session
+  key: bc4c3702941392162b75745ac33d2ac0
+  expiry_days: 7
+
+preauthorized:
+  emails:
+    - paxymeventures@gmail.com

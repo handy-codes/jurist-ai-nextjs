@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JuristAI - Secure Sign In</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --background: #1e2b38;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --text-secondary: #bbbbbb;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --error: #f44336;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: radial-gradient(circle at top right, #1a2a6c, #2c3e50, #0d1b2a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(76, 175, 80, 0.1) 0%, transparent 70%);
+            z-index: -1;
+        }
+        
+        .logo {
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 25px;
+            background: linear-gradient(135deg, var(--primary), #8BC34A);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 6px 15px rgba(76, 175, 80, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #ffffff, #a0e6a0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 17px;
+        }
+        
+        .signin-btn {
+            background: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 16px 30px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .signin-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 20px;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(25deg);
+            transition: all 0.6s;
+        }
+        
+        .signin-btn:hover {
+            background: #3367D6;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .signin-btn:hover::after {
+            left: 120%;
+        }
+        
+        .signin-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .google-icon {
+            width: 26px;
+            height: 26px;
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #4285F4;
+            font-size: 18px;
+        }
+        
+        #message {
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--warning);
+            font-size: 15px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .environment-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .development {
+            background: var(--warning);
+            color: #333;
+        }
+        
+        .production {
+            background: var(--success);
+            color: white;
+        }
+        
+        .status-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            text-align: left;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .status-title {
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .status-value {
+            font-weight: 600;
+            color: white;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-all;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            text-align: left;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .instructions h3 {
+            color: #2196F3;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .instructions ol {
+            padding-left: 25px;
+            color: var(--text-secondary);
+        }
+        
+        .instructions li {
+            margin-bottom: 12px;
+        }
+        
+        .instructions li strong {
+            color: white;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 26px;
+            }
+            
+            .signin-btn {
+                padding: 14px 20px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="environmentBadge" class="environment-badge"></div>
+        <div class="logo">J</div>
+        <h1>Sign In to JuristAI</h1>
+        <p class="subtitle">Secure access to legal intelligence platform</p>
+        
+        <button id="signInButton" class="signin-btn">
+            <div class="google-icon">G</div>
+            <span id="buttonText">Sign In with Google</span>
+        </button>
+        
+        <div id="message">Ready to authenticate your session</div>
+        
+        <div class="status-container">
+            <div class="status-title">🔒 Connection Status</div>
+            <div class="status-item">
+                <span>Current Environment:</span>
+                <span id="environmentStatus" class="status-value">Detecting...</span>
+            </div>
+            <div class="status-item">
+                <span>Static Site URL:</span>
+                <span id="staticSiteStatus" class="status-value">Detecting...</span>
+            </div>
+            <div class="status-item">
+                <span>Streamlit App URL:</span>
+                <span id="streamlitAppStatus" class="status-value">Detecting...</span>
+            </div>
+            <div class="status-item">
+                <span>Firebase Domain:</span>
+                <span id="firebaseDomainStatus" class="status-value">Detecting...</span>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>ℹ️ Development Notes</h3>
+            <ol>
+                <li><strong>Local Development:</strong> When running on localhost, the app will redirect to http://localhost:8501</li>
+                <li><strong>Production:</strong> When deployed, redirects to https://jurist-ai-z8dh.onrender.com</li>
+                <li><strong>Firebase Setup:</strong> Remember to add both domains to Firebase authorized domains</li>
+                <li><strong>Token Handling:</strong> Firebase tokens are securely passed via URL encoding</li>
+            </ol>
+        </div>
+        
+        <div class="footer">
+            JuristAI © 2023 | Enterprise Legal Intelligence Platform
+        </div>
+    </div>
+
+    <script>
+        // ======================
+        // ENVIRONMENT DETECTION
+        // ======================
+        const isDevelopment = window.location.hostname === "localhost" || 
+                             window.location.hostname === "127.0.0.1" ||
+                             window.location.hostname.startsWith("192.168");
+        
+        // ======================
+        // FIREBASE CONFIGURATION
+        // ======================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlDa---D8pBz5RrUP5FrF-4wDaJHvySJE",
+            authDomain: isDevelopment ? "localhost" : "jurist-ai-i7fh.onrender.com",
+            projectId: "juristai-fe067",
+            storageBucket: "juristai-fe067.appspot.com",
+            messagingSenderId: "1068314462876",
+            appId: "1:1068314462876:web:4ec934c1c5b6ac63bb3b59"
+        };
+
+        // ======================
+        // APP INITIALIZATION
+        // ======================
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+        
+        // DOM Elements
+        const signInButton = document.getElementById('signInButton');
+        const messageDiv = document.getElementById('message');
+        const buttonText = document.getElementById('buttonText');
+        const environmentBadge = document.getElementById('environmentBadge');
+        const environmentStatus = document.getElementById('environmentStatus');
+        const staticSiteStatus = document.getElementById('staticSiteStatus');
+        const streamlitAppStatus = document.getElementById('streamlitAppStatus');
+        const firebaseDomainStatus = document.getElementById('firebaseDomainStatus');
+        
+        // ======================
+        // ENVIRONMENT SETUP
+        // ======================
+        function setupEnvironment() {
+            // Set environment badge
+            if (isDevelopment) {
+                environmentBadge.textContent = "Development";
+                environmentBadge.classList.add('development');
+                environmentStatus.textContent = "Development (Local)";
+            } else {
+                environmentBadge.textContent = "Production";
+                environmentBadge.classList.add('production');
+                environmentStatus.textContent = "Production (Render)";
+            }
+            
+            // Set status values
+            staticSiteStatus.textContent = window.location.host;
+            firebaseDomainStatus.textContent = firebaseConfig.authDomain;
+        }
+        
+        // ======================
+        // STREAMLIT URL RESOLVER
+        // ======================
+        function getStreamlitAppUrl() {
+            if (isDevelopment) {
+                return "http://localhost:8501";
+            }
+            return "https://jurist-ai-z8dh.onrender.com";
+        }
+
+        const streamlitAppUrl = getStreamlitAppUrl();
+        streamlitAppStatus.textContent = streamlitAppUrl;
+        
+        // ======================
+        // AUTH STATE MANAGEMENT
+        // ======================
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                buttonText.textContent = `Continue as ${user.email}`;
+                signInButton.onclick = () => {
+                    messageDiv.textContent = 'Redirecting to JuristAI dashboard...';
+                    user.getIdToken().then(token => {
+                        localStorage.setItem('firebase_token', token);
+                        const redirectUrl = `${streamlitAppUrl}/?firebase_token=${encodeURIComponent(token)}`;
+                        console.log("Redirecting to:", redirectUrl);
+                        window.location.href = redirectUrl;
+                    });
+                };
+            } else {
+                buttonText.textContent = "Sign In with Google";
+                signInButton.onclick = () => {
+                    messageDiv.textContent = 'Authenticating with Google...';
+                    auth.signInWithPopup(provider)
+                        .then((result) => {
+                            return result.user.getIdToken();
+                        })
+                        .then(token => {
+                            localStorage.setItem('firebase_token', token);
+                            const redirectUrl = `${streamlitAppUrl}/?firebase_token=${encodeURIComponent(token)}`;
+                            console.log("Redirecting to:", redirectUrl);
+                            window.location.href = redirectUrl;
+                        })
+                        .catch((error) => {
+                            console.error("Authentication error:", error);
+                            messageDiv.textContent = `Error: ${error.message}`;
+                            messageDiv.style.color = 'var(--error)';
+                            messageDiv.style.borderLeftColor = 'var(--error)';
+                        });
+                };
+            }
+        });
+        
+        // ======================
+        // INITIAL SETUP
+        // ======================
+        setupEnvironment();
+        console.log("Environment:", isDevelopment ? "Development" : "Production");
+        console.log("Firebase Domain:", firebaseConfig.authDomain);
+        console.log("Streamlit URL:", streamlitAppUrl);
+    </script>
+</body>
+</html>
+
+
+
+
+<!-- <!DOCTYPE html>
+<html>
+  <head>
+    <title>Sign In</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #24292e;
+        color: #ffffff;
+        margin: 0;
+        flex-direction: column;
+      }
+      .container {
+        background-color: #33383d;
+        padding: 40px 60px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      h2 {
+        margin-bottom: 20px;
+        color: #4caf50;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      #message {
+        margin-top: 20px;
+        color: #ffcc00;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Sign In to JuristAI</h2>
+      <p>Please use your Google account to continue.</p>
+      <button id="signInButton">Sign In with Google</button>
+      <div id="message"></div>
+    </div>
+
+    <script>
+      // Updated Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyAlDa---D8pBz5RrUP5FrF-4wDaJHvySJE",
+        authDomain: "jurist-ai-i7fh.onrender.com",  // Must match your static site domain
+        projectId: "juristai-fe067",
+        storageBucket: "juristai-fe067.appspot.com",
+        messagingSenderId: "1068314462876",
+        appId: "1:1068314462876:web:4ec934c1c5b6ac63bb3b59"
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+
+      const auth = firebase.auth();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const signInButton = document.getElementById('signInButton');
+      const messageDiv = document.getElementById('message');
+
+      // Dynamic URL generation with proper service names
+      function getStreamlitAppUrl() {
+        const currentHost = window.location.host;
+        const isLocal = currentHost.includes("localhost") || currentHost.includes("127.0.0.1");
+        
+        if (isLocal) {
+          return "http://localhost:8501";
+        }
+        
+        // Extract service name from current host (jurist-ai-i7fh)
+        const serviceName = currentHost.split('.')[0];
+        
+        // Map static site service to Streamlit service
+        if (serviceName === "jurist-ai-i7fh") {
+          return "https://jurist-ai-z8dh.onrender.com";
+        }
+        
+        // Fallback to standard pattern
+        return `https://${serviceName}.onrender.com`;
+      }
+
+      const streamlitAppUrl = getStreamlitAppUrl();
+
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          signInButton.textContent = `Continue as ${user.email}`;
+          signInButton.onclick = () => {
+            user.getIdToken().then(token => {
+              localStorage.setItem('firebase_token', token);
+              // URL-encode token for safety
+              window.location.href = `${streamlitAppUrl}/?firebase_token=${encodeURIComponent(token)}`;
+            });
+          };
+        } else {
+          signInButton.textContent = "Sign In with Google";
+          signInButton.onclick = () => {
+            messageDiv.textContent = 'Redirecting to Google...';
+            auth.signInWithPopup(provider)
+              .then((result) => {
+                const user = result.user;
+                return user.getIdToken();
+              })
+              .then(token => {
+                localStorage.setItem('firebase_token', token);
+                // URL-encode token for safety
+                window.location.href = `${streamlitAppUrl}/?firebase_token=${encodeURIComponent(token)}`;
+              })
+              .catch((error) => {
+                console.error("Google Sign-In error:", error);
+                messageDiv.textContent = `Sign-in failed: ${error.message}`;
+              });
+          };
+        }
+      });
+
+      // Debug output (visible in browser console)
+      console.log("Firebase initialized for domain:", firebaseConfig.authDomain);
+      console.log("Streamlit app URL:", streamlitAppUrl);
+    </script>
+  </body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html>
+  <head>
+    <title>Sign In</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #24292e;
+        color: #ffffff;
+        margin: 0;
+        flex-direction: column;
+      }
+      .container {
+        background-color: #33383d;
+        padding: 40px 60px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      h2 {
+        margin-bottom: 20px;
+        color: #4caf50;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      #message {
+        margin-top: 20px;
+        color: #ffcc00;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Sign In to JuristAI</h2>
+      <p>Please use your Google account to continue.</p>
+      <button id="signInButton">Sign In with Google</button>
+      <div id="message"></div>
+    </div>
+
+    <script>
+          // Your Firebase Web App Configuration
+          const firebaseConfig = {
+              apiKey: "AIzaSyAlDa---D8pBz5RrUP5FrF-4wDaJHvySJE",
+              authDomain: "juristai-fe067.firebaseapp.com",
+              projectId: "juristai-fe067",
+              storageBucket: "juristai-fe067.firebasestorage.app",
+              messagingSenderId: "1068314462876",
+              appId: "1:1068314462876:web:4ec934c1c5b6ac63bb3b59",
+          };
+
+          // Initialize Firebase
+          firebase.initializeApp(firebaseConfig);
+
+          const auth = firebase.auth();
+          const provider = new firebase.auth.GoogleAuthProvider();
+          const signInButton = document.getElementById('signInButton');
+          const messageDiv = document.getElementById('message');
+
+          function getStreamlitAppUrl() {
+              if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+                  return "http://localhost:8501";
+              }
+              return "https://jurist-ai-z8dh.onrender.com";
+          }
+          const streamlitAppUrl = getStreamlitAppUrl();
+
+          auth.onAuthStateChanged((user) => {
+              if (user) {
+                  signInButton.textContent = `Continue as ${user.email}`;
+                  signInButton.onclick = () => {
+                      user.getIdToken().then(token => {
+                          localStorage.setItem('firebase_token', token);
+                          window.location.href = `${streamlitAppUrl}/?firebase_token=${token}`;
+                      });
+                  };
+              } else {
+                  signInButton.textContent = "Sign In with Google";
+                  signInButton.onclick = () => {
+                      messageDiv.textContent = 'Redirecting to Google...';
+                      auth.signInWithPopup(provider)
+                          .then((result) => {
+                              const user = result.user;
+                              return user.getIdToken();
+                          })
+                          .then(token => {
+                              localStorage.setItem('firebase_token', token);
+                              window.location.href = `${streamlitAppUrl}/?firebase_token=${token}`;
+                          })
+                          .catch((error) => {
+                              console.error("Google Sign-In error:", error);
+                              messageDiv.textContent = `Sign-in failed: ${error.message}`;
+                          });
+                  };
+              }
+              });
+    </script>
+  </body>
+</html> -->
