@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loadMessages } from "../../../lib/db";
+import { loadMessages } from "../../../../lib/db";
 
 export async function GET(request: NextRequest) {
   try {
