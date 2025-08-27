@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  conversationManager,
-  contextAnalyzer,
-} from "../../../../lib/conversation";
-import { saveMessage, saveQaResult } from "../../../../lib/db";
+import { conversationManager, contextAnalyzer } from "@/lib/conversation";
+import { saveMessage, saveQaResult } from "@/lib/db";
 import { evaluateAssistantResponse } from "@/services/qa";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
